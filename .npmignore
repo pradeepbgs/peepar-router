@@ -1,0 +1,37 @@
+# Source
+*.ts
+src/
+router.ts
+
+# Config / Dev files
+tsconfig.json
+jsconfig.json
+.eslintrc
+.prettierrc
+
+# Tests / Bench / Examples
+test/
+tests/
+bench/
+benchmark/
+examples/
+
+# Git
+.git
+.gitignore
+.github/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local
+.env
+coverage/

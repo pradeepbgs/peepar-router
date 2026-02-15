@@ -1,0 +1,39 @@
+{
+  "name": "peepar",
+  "version": "0.1.0",
+  "description": "a fast and minimal trie based http router",
+  "keywords": [
+    "http-router",
+    "trie-router",
+    "hono",
+    "diesel",
+    "express-router",
+    "radix-tree",
+    "tree"
+  ],
+  "homepage": "https://github.com/pradeepbgs/peepar-router#readme",
+  "bugs": {
+    "url": "https://github.com/pradeepbgs/peepar-router/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pradeepbgs/peepar-router.git"
+  },
+  "license": "MIT",
+  "author": "pradeepkumar",
+  "type": "module",
+  "main": "dist/router.js",
+  "types": "dist/router.d.ts",
+  "files": ["dist"],
+  "scripts": {
+      "build": "tsc",
+      "prepublishOnly": "npm run build"
+    },
+  "private": false,
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
