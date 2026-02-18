@@ -1,15 +1,16 @@
+// Copyright (c) 2026 Pradeep
+// Licensed under the MIT License
+
 class TrieNodes {
   children: Record<string, TrieNodes>;
   isEndOfWord: boolean;
   handlers: Record<string, Function>;
-  paramName: string[];
   middlewares: Function[];
   params: Record<string, number>;
   constructor() {
     this.children = {};
     this.handlers = {};
     this.isEndOfWord = false;
-    this.paramName = [];
     this.middlewares = [];
     this.params = {}
   }
@@ -61,7 +62,6 @@ export class TrieRouter {
     if (path === "/") {
       node.isEndOfWord = true;
       node.handlers[method]=handler
-      node.paramName = [];
       return;
     }
    let routeparams :Record<string,number>={}
