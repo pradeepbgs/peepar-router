@@ -1,6 +1,6 @@
 {
   "name": "peepal-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "a fast and minimal trie based http router",
   "keywords": [
     "http-router",
@@ -24,11 +24,13 @@
   "type": "module",
   "main": "dist/router.js",
   "types": "dist/router.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-      "build": "tsc",
-      "prepublishOnly": "npm run build"
-    },
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
   "private": false,
   "devDependencies": {
     "typescript": "^5.9.3"
