@@ -6,13 +6,13 @@ class TrieNodes {
   isEndOfWord: boolean;
   handlers: Record<string, Function>;
   middlewares: Function[];
-  params: Record<string, number>;
+  paramName:string
   constructor() {
     this.children = {};
     this.handlers = {};
     this.isEndOfWord = false;
     this.middlewares = [];
-    this.params = {}
+    this.paramName=""
   }
 }
 
@@ -64,7 +64,6 @@ export class TrieRouter {
       node.handlers[method]=handler
       return;
     }
-   let routeparams :Record<string,number>={}
     for (let i=0; i<pathSegments.length; i++) {
       const element = pathSegments[i];
       let key = element;
@@ -79,10 +78,9 @@ export class TrieRouter {
 
       node = node.children[key];
       if(cleanParam) {
-        routeparams[cleanParam]=i
+        node.paramName=cleanParam
       }
     }
-    node.params=routeparams
     node.handlers[method]=handler;
     node.isEndOfWord = true;
  }
@@ -97,6 +95,8 @@ export class TrieRouter {
     const pathSegments = path.split("/")
 
     let collected = this.globalMiddlewares.slice();
+    let params:Record<string,string>|undefined
+
     for (let i = 0; i < pathSegments.length; i++) {
       const element = pathSegments[i];
       if (element.length === 0) {
@@ -107,11 +107,13 @@ export class TrieRouter {
         node = node.children[element]!;
       } else if (node.children[":"]) {
         node = node.children[":"];
+        if(!params)params={}
+        params[node.paramName]=element
       } else if (node.children["*"]) {
         node = node.children["*"];
         break;
       } else {
-        return { params: node.params, handler: collected };
+        return { params: params, handler: collected };
       }
 
       if (node.middlewares.length > 0) {
@@ -124,7 +126,7 @@ export class TrieRouter {
     const methodHandler = node.handlers[method]
     if (methodHandler) collected.push(methodHandler);
     return {
-      params: node.params,
+      params: params,
       handler: collected,
     };
   }

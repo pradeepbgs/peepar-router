@@ -1,8 +1,8 @@
-import { TrieRouter } from "./dist/router.js";
+import { TrieRouter } from "./router";
 
 const r = new TrieRouter();
-r.add("GET", "/hello/:id", () => "ok");
+r.add("GET", "/hello/:id/:name/:cors/:dim", () => "ok");
 
-const matchedHandler = r.find("GET", "/hello/123");
-const params = r.parseParams("/hello/123", matchedHandler.params);
-console.log(params); // { id: '123' }
+const inComingpath="/hello/124ljsadls/loud/corss/dimmm"
+const matchedHandler = r.find("GET", inComingpath);
+console.log(matchedHandler); // { id: '123' }
