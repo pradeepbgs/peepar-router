@@ -17,15 +17,14 @@ Peepar name is inspired by the **Peepal (Sacred fig) tree**, known for its deep 
 * Wildcard route matching
 * Works in Node.js and Bun
 * TypeScript types included
-* Inbuilt params parser
-* Inbuilt query string parser
+* Inbuilt params parsing
 
 ---
 
 ## Installation
 
 ```bash
-npm install peepar
+npm install peepal-router
 ```
 
 ---
@@ -33,7 +32,7 @@ npm install peepar
 ## Basic Usage
 
 ```js
-import { TrieRouter } from "peepar";
+import { TrieRouter } from "peepal-router";
 
 const router = new TrieRouter();
 
@@ -59,22 +58,15 @@ router.pushMiddleware("/users", function userMiddleware(ctx) => {
 router.add("GET", "/users/:id", function userHandler() => "user profile");
 
 const result = router.find("GET", "/users/42");
-// /users/42 is incoming path from the server
-const params = router.parseParams('/users/42',result.params); 
-// you will have to manually parse params until we support inbuilt params parse inside our router seach method.
-
 ```
 
 Output:
 
 ```js
 {
-  params: { id: 1 }, // id : 1 is'nt real params , it's just index of ":id" in path
+  params: { id: 42 },
   handler: [GlobalMiddleware1,GlobalMiddleware2,userMiddleware,userHandler]
 }
-
-// params
-{ id: 42 }
 
 ```
 
@@ -117,7 +109,7 @@ Matches:
 
 ## Performance
 
-Peepar is designed for speed and low allocation during hot path. we try to minimise allocation and make our fast as much as possible.
+Peepar is designed for speed and low allocation during hot path. we try to minimise allocation and make our router fast as much as possible.
 
 Key design goals:
 
@@ -149,7 +141,7 @@ Returns:
 
 ```ts
 {
-  params: Record<string, number>;
+  params: Record<string, string>;
   handler: Function[];
 }
 ```
@@ -206,4 +198,4 @@ MIT
 
 Pradeep Kumar
 
-GitHub: [https://github.com/pradeepbgs/peepar-router](https://github.com/pradeepbgs/peepar-router)
+GitHub: [https://github.com/pradeepbgs/peepal-router](https://github.com/pradeepbgs/peepal-router)
