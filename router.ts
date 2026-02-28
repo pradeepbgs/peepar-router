@@ -4,15 +4,17 @@
 class TrieNodes {
   children: Record<string, TrieNodes>;
   isEndOfWord: boolean;
-  handlers: Record<string, Function>;
+  handlers: Record<string, Function> | undefined;
   middlewares: Function[];
-  paramName:string
+  paramName: string
+  finalHandler: Record<string, Array<Function> | undefined>
   constructor() {
     this.children = {};
     this.handlers = {};
     this.isEndOfWord = false;
     this.middlewares = [];
-    this.paramName=""
+    this.paramName = ""
+    this.finalHandler = undefined
   }
 }
 
@@ -20,20 +22,28 @@ class TrieNodes {
 export class TrieRouter {
   root: TrieNodes;
   globalMiddlewares: Function[];
+  isCompiled: boolean
+  find: Function
   constructor() {
     this.root = new TrieNodes();
     this.globalMiddlewares = [];
+    this.isCompiled = false
+    this.find = this.lazyFind
   }
 
-  pushMiddleware(path: string, handlers: Function | Function[]) {
+  addMiddleware(pattern: string, handlers: Function | Function[]) {
+    return this.pushMiddleware(pattern, handlers)
+  }
+
+  pushMiddleware(pattern: string, handlers: Function | Function[]) {
     if (!Array.isArray(handlers)) handlers = [handlers];
-    if (path === "/") {
+    if (pattern === "/") {
       this.globalMiddlewares.push(...handlers);
       return;
     }
 
     let node = this.root;
-    const pathSegments = path.split("/").filter(Boolean);
+    const pathSegments = pattern.split("/").filter(Boolean);
 
     for (const element of pathSegments) {
       let key = element;
@@ -50,21 +60,20 @@ export class TrieRouter {
 
     node.middlewares.push(...handlers);
 
-    // node.isEndOfWord = true
+    node.isEndOfWord = true
   }
 
- insert(method: string, path: string, handler: Function) {
+  insert(method: string, pattern: string, handler: Function) {
     let node = this.root;
 
-    const pathSegments = path.split("/").filter(Boolean);
-
-    // handle if path is /
-    if (path === "/") {
+    const pathSegments = pattern.split("/").filter(Boolean);
+    const collectedMiddlewares = this.globalMiddlewares.slice();
+    if (pattern === "/") {
       node.isEndOfWord = true;
-      node.handlers[method]=handler
+      node.handlers[method] = handler
       return;
     }
-    for (let i=0; i<pathSegments.length; i++) {
+    for (let i = 0; i < pathSegments.length; i++) {
       const element = pathSegments[i];
       let key = element;
       let cleanParam = ''
@@ -72,30 +81,32 @@ export class TrieRouter {
         key = ":";
         cleanParam = element.slice(1)
       }
-      
+
 
       if (!node.children[key]) node.children[key] = new TrieNodes();
 
       node = node.children[key];
-      if(cleanParam) {
-        node.paramName=cleanParam
+      if (cleanParam) {
+        node.paramName = cleanParam
+      }
+      if (node.middlewares.length > 0) {
+        collectedMiddlewares.push(...node.middlewares)
       }
     }
-    node.handlers[method]=handler;
+    node.handlers[method] = handler;
     node.isEndOfWord = true;
- }
-  
-  add(method: string, path: string, handler:Function) {
-    return this.insert(method,path,handler)
   }
 
-  search(method: string, path: string) {
+  add(method: string, pattern: string, handler: Function) {
+    return this.insert(method, pattern, handler)
+  }
+
+  search(method: string, pattern: string) {
     let node = this.root;
+    const pathSegments = pattern.split("/")
 
-    const pathSegments = path.split("/")
-
-    let collected = this.globalMiddlewares.slice();
-    let params:Record<string,string>|undefined
+    let collected: Array<Function> | undefined
+    let params: Record<string, string> | undefined
 
     for (let i = 0; i < pathSegments.length; i++) {
       const element = pathSegments[i];
@@ -107,45 +118,146 @@ export class TrieRouter {
         node = node.children[element]!;
       } else if (node.children[":"]) {
         node = node.children[":"];
-        if(!params)params={}
-        params[node.paramName]=element
+        if (!params) params = {}
+        params[node.paramName] = element
       } else if (node.children["*"]) {
         node = node.children["*"];
         break;
       } else {
-        return { params: params, handler: collected };
+        return { params: params, handler: this.globalMiddlewares };
       }
 
-      if (node.middlewares.length > 0) {
+      if (node?.middlewares?.length > 0) {
         const mw = node.middlewares;
+        if (!collected) collected = this.globalMiddlewares.slice();
         for (let j = 0; j < mw.length; j++) {
           collected.push(mw[j]);
         }
       }
     }
-    const methodHandler = node.handlers[method]
-    if (methodHandler) collected.push(methodHandler);
+    const methodHandler = node.handlers && node?.handlers[method]
+    if (methodHandler) {
+      if (!collected) collected = this.globalMiddlewares.slice();
+      collected.push(methodHandler);
+    }
     return {
       params: params,
       handler: collected,
     };
   }
-  
-  find(method: string, path: string) {
-    return this.search(method,path)
+
+  optimisedSearch(method: string, pattern: string) {
+    let node = this.root;
+    let element = "";
+
+    let collected: Array<Function> | undefined
+    let params: Record<string, string> | undefined
+
+    for (let i = 0; i <= pattern.length; i++) {
+      const char = pattern[i];
+
+      if (char === "/" || i === pattern.length) {
+        if (element.length === 0) continue;
+
+        // node search
+        if (node.children[element]) {
+          node = node.children[element];
+        } else if (node.children[":"]) {
+          node = node.children[":"];
+           if (!params) params = {}
+          params[node.paramName] = element
+        } else if (node.children["*"]) {
+          node = node.children["*"];
+          break;
+        } else {
+          return { params: params, handler: this.globalMiddlewares };
+        }
+
+        if (node?.middlewares?.length > 0) {
+          const mw = node.middlewares;
+          if (!collected) collected = this.globalMiddlewares.slice();
+          for (let j = 0; j < mw.length; j++) {
+            collected.push(mw[j]);
+          }
+        }
+
+        element = "";
+      } else {
+        // element = element.concat(char)
+        element += char
+      }
+    }
+    const methodHandler = node.handlers && node?.handlers[method]
+    if (methodHandler) {
+      if (!collected) collected = this.globalMiddlewares.slice();
+      collected.push(methodHandler);
+    }
+    return {
+      params: params,
+      handler: collected,
+    };
   }
 
-  // param parser
-  parseParams(inComingpath: string|null, param: Record<string, number>|null) {
-    const paramObject: Record<string, any> = {};
-    
-    const pathWithoutQuery = inComingpath?.split('?')[0]
-    // URL = /user/id/register?name=pradeep
-    // [ "/user/id/register", "name=pradeep" ]
-    const paths = pathWithoutQuery?.split('/').filter(Boolean);
-    for (const key in param) {
-      paramObject[key] = paths?.[param[key]];
+  // unstable API
+  compiledFind(method: string, pattern: string) {
+    let node = this.root;
+    const pathSegments = pattern.split("/")
+
+    let params: Record<string, string> | undefined
+
+    for (let i = 0; i < pathSegments.length; i++) {
+      const element = pathSegments[i];
+      if (element.length === 0) {
+        continue;
+      }
+
+      if (node.children[element]) {
+        node = node.children[element]!;
+      } else if (node.children[":"]) {
+        node = node.children[":"];
+        if (!params) params = {}
+        params[node.paramName] = element
+      } else if (node.children["*"]) {
+        node = node.children["*"];
+        break;
+      } else {
+        return { params: params, handler: node?.finalHandler?.[method] };
+      }
     }
-    return paramObject;
+    return {
+      params: params,
+      handler: node?.finalHandler?.[method],
+    };
   }
+  // unstabel api
+  private lazyFind(method: string, pattern: string) {
+    this.compile()
+
+    this.find = this.compiledFind
+    return this.compiledFind(method, pattern)
+  }
+  // unstable api
+  // Compile method which will compile all these routes once our application registers all it's route.
+  private compileNode(node: TrieNodes, inheritedMiddlewares: Array<Function>) {
+    const currentMiddlewares = [...inheritedMiddlewares, ...node?.middlewares]
+    if (node.isEndOfWord) {
+      if (!node.finalHandler) node.finalHandler = {}
+      for (const method in node.handlers) {
+        const finalHandler = [...currentMiddlewares, node.handlers[method]]
+        node.finalHandler[method] = finalHandler
+      }
+      // node.middlewares=undefined
+      // node.handlers=undefined
+    }
+
+    for (const key in node.children) {
+      this.compileNode(node.children[key], currentMiddlewares);
+    }
+
+  }
+
+  compile() {
+    this.compileNode(this.root, this.globalMiddlewares)
+  }
+
 }
